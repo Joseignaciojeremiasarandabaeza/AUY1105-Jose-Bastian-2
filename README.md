@@ -8,7 +8,7 @@ seguridad, calidad y mantenibilidad, a la vez que permita a los equipos gestiona
 *git clone (clonación del repositorio)
 *mkdir para crear carpetas
 
--instrucciónes del primer punto 
+-instrucciónes del primer punto a realizar
 
 Nombre del repositorio: El repositorio tendrá como nombre <sigla-curso>-grupo-<Nª de grupo>.
  Archivo README.md: Se debe detallar los objetivos del repositorio, instrucciones básicas de uso y propósito general. Además de la
