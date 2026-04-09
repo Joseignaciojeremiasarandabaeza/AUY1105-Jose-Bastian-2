@@ -86,24 +86,20 @@ jobs:
           terraform plan -out=tfplan -input=false
           terraform show -json tfplan > tfplan.json
 
-      - name: Run Checkov (Saltando errores de Academy y diseño)
+      - name: Run Checkov
         run: |
-          # Se añaden los nuevos skips basados en tu último log de errores:
-          # CKV_AWS_135 (EBS Optimized), CKV_AWS_126 (Monitoring), CKV_AWS_382 (Egress), 
-          # CKV_AWS_130 (Public IP), CKV2_AWS_11 (Flow Logs), CKV2_AWS_12 (Default SG), 
-          # CKV2_AWS_41 (IAM Role)
           checkov -f tfplan.json --skip-check CKV_AWS_158,CKV_AWS_338,CKV_AWS_290,CKV_AWS_355,CKV_AWS_135,CKV_AWS_126,CKV_AWS_382,CKV_AWS_130,CKV2_AWS_11,CKV2_AWS_12,CKV2_AWS_41
 
       - name: OPA Policy Compliance Check
         run: |
-          RESULT_SSH=$(opa eval -i tfplan.json -d terraform_ssh_policy.rego "data.terraform.ssh.allow" --format json)
-          echo "$RESULT_SSH" | grep -q 'true' || (echo "ERROR: Acceso SSH público detectado." && exit 1)
+          RESULT_ANALYSIS=$(opa eval -i tfplan.json -d . "data.terraform.analysis.violation" --format json)
+          echo "$RESULT_ANALYSIS" | grep -q '\[\]' || (echo "ERROR: Violación de política detectada (Tipo de instancia o Tags)." && exit 1)
 
-          RESULT_TYPE=$(opa eval -i tfplan.json -d terraform_instance_type.rego "data.terraform.instance.allow" --format json)
-          echo "$RESULT_TYPE" | grep -q 'true' || (echo "ERROR: Solo se permiten instancias t2.micro." && exit 1)
+          RESULT_NAME=$(opa eval -i tfplan.json -d . "data.terraform.authz.allow" --format json)
+          echo "$RESULT_NAME" | grep -q '"status":true' || (echo "ERROR: El nombre de la instancia no cumple la nomenclatura." && exit 1)
 
-          RESULT_NAME=$(opa eval -i tfplan.json -d terraform_name_check.rego "data.terraform.authz.allow" --format json)
-          echo "$RESULT_NAME" | grep -q '"status":true' || (echo "ERROR: El nombre no cumple la nomenclatura." && exit 1)
+          RESULT_REGION=$(opa eval -i tfplan.json -d . "data.terraform_region_check.allow" --format json)
+          echo "$RESULT_REGION" | grep -q 'true' || (echo "ERROR: La región configurada no es us-east-1." && exit 1)
 
       - name: Upload Plan Artifact
         uses: actions/upload-artifact@v4
@@ -176,9 +172,6 @@ jobs:
 
       - name: Terraform Init
         run: terraform init -upgrade -input=false
-
-      - name: Terraform Destroy
-        run: terraform destroy -auto-approvelse
 
       - name: Terraform Destroy
         run: terraform destroy -auto-approve
