@@ -96,13 +96,13 @@ jobs:
           RESULT_ANALYSIS=$(opa eval -i tfplan.json -d instancias.rego "data.terraform.analysis.violation" --format json || echo "ERROR_OPA")
           echo "Debug Analisis: $RESULT_ANALYSIS"
           if [[ "$RESULT_ANALYSIS" == "ERROR_OPA" ]]; then exit 1; fi
-          echo "$RESULT_ANALYSIS" | grep -q '\[\]' || exit 1
+          echo "$RESULT_ANALYSIS" | tr -d '[:space:]' | grep -q '\[\]' || exit 1
 
           echo "--- 2. Validando Nombre y Autorización (Authz) ---"
           RESULT_NAME=$(opa eval -i tfplan.json -d terraform_name_check.rego "data.terraform.authz.allow" --format json || echo "ERROR_OPA")
           echo "Debug Name: $RESULT_NAME"
           if [[ "$RESULT_NAME" == "ERROR_OPA" ]]; then exit 1; fi
-          echo "$RESULT_NAME" | grep -q '"status":true' || exit 1
+          echo "$RESULT_NAME" | grep -q '"status":[[:space:]]*true' || exit 1
 
       - name: Upload Plan Artifact
         uses: actions/upload-artifact@v4
