@@ -1,15 +1,19 @@
 package terraform_region_check
 
-default allow = true
+# 1. Por defecto, no permitimos si no se cumplen las reglas
+default allow = false
 
+# 2. Definimos las denegaciones
 deny[msg] {
     provider := input.provider_configurations[_]
     provider.type == "aws"
-    provider.configuration.region != "us-east-1"
-    msg := sprintf("El provider AWS debe usar la región us-east-1 (Virginia), se encontró %v", [provider.configuration.region])
+    # Usamos este formato para manejar valores nulos o faltantes de forma segura
+    region := provider.configuration.region
+    region != "us-east-1"
+    msg := sprintf("Región no permitida: se encontró '%v', pero se requiere 'us-east-1'.", [region])
 }
 
-# Si hay algún deny, allow es false
-allow = false {
-    count(deny) > 0
+# 3. La decisión final: allow es true SOLO si no hay mensajes en deny
+allow {
+    count(deny) == 0
 }
