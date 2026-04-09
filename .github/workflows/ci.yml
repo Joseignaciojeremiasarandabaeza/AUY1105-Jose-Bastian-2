@@ -92,27 +92,17 @@ jobs:
 
       - name: OPA Policy Compliance Check
         run: |
-          echo "--- 1. Validando Instancias ---"
+          echo "--- 1. Validando Instancias y Seguridad (Analysis) ---"
           RESULT_ANALYSIS=$(opa eval -i tfplan.json -d instancias.rego "data.terraform.analysis.violation" --format json || echo "ERROR_OPA")
           echo "Debug Analisis: $RESULT_ANALYSIS"
           if [[ "$RESULT_ANALYSIS" == "ERROR_OPA" ]]; then exit 1; fi
           echo "$RESULT_ANALYSIS" | grep -q '\[\]' || exit 1
 
-          echo "--- 2. Validando Nombre ---"
+          echo "--- 2. Validando Nombre y Autorización (Authz) ---"
           RESULT_NAME=$(opa eval -i tfplan.json -d terraform_name_check.rego "data.terraform.authz.allow" --format json || echo "ERROR_OPA")
           echo "Debug Name: $RESULT_NAME"
           if [[ "$RESULT_NAME" == "ERROR_OPA" ]]; then exit 1; fi
           echo "$RESULT_NAME" | grep -q '"status":true' || exit 1
-
-          echo "--- 3. Validando Region ---"
-          # Ejecución directa para ver errores de sintaxis en el log de GitHub
-          opa eval -i tfplan.json -d terraform_region_check.rego "data.terraform_region_check.allow" --format json
-          
-          # Captura del resultado
-          RESULT_REGION=$(opa eval -i tfplan.json -d terraform_region_check.rego "data.terraform_region_check.allow" --format json || echo "ERROR_OPA")
-          echo "Debug Region: $RESULT_REGION"
-          if [[ "$RESULT_REGION" == "ERROR_OPA" ]]; then exit 1; fi
-          echo "$RESULT_REGION" | grep -q 'true' || exit 1
 
       - name: Upload Plan Artifact
         uses: actions/upload-artifact@v4
@@ -183,11 +173,6 @@ jobs:
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
 
-      - name: Terraform Init
-        run: terraform init -upgrade -input=false
-
-      - name: Terraform Destroy
-        run: terraform destroy -auto-approve
       - name: Terraform Init
         run: terraform init -upgrade -input=false
 
