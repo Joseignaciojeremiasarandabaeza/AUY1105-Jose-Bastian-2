@@ -8,15 +8,15 @@ resource "aws_security_group" "ssh_access" {
     from_port   = 22
     to_port     = 22
     protocol    = "tcp"
-    cidr_blocks = ["201.189.206.99/32"]
+    cidr_blocks = ["201.189.206.99/32"] # Permitir desde mi dirección IPv4
   }
 
   egress {
-    description = "Permitir HTTPS de salida para actualizaciones"
-    from_port   = 443
-    to_port     = 443
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
+  description = "Permitir HTTPS de salida para actualizaciones"
+  from_port   = 443
+  to_port     = 443
+  protocol    = "tcp"
+  cidr_blocks = ["0.0.0.0/0"]
   }
 
   tags = {
@@ -26,7 +26,7 @@ resource "aws_security_group" "ssh_access" {
 
 resource "aws_instance" "mi_ec2" {
   ami                     = "ami-0fa8aad99729521be"
-  instance_type           = "t2.micro" 
+  instance_type           = "t2.micro" # Cumple con OPA
   subnet_id               = aws_subnet.subnet_publica_1.id
   vpc_security_group_ids  = [aws_security_group.ssh_access.id]
   disable_api_termination = true
@@ -43,9 +43,11 @@ resource "aws_instance" "mi_ec2" {
   }
 
   tags = {
-    Name = "AUY1105-duocapp-ec2"
+  
+    Name = "AUY1105-duocapp-ec2" 
   }
-} # <--- FALTABA ESTA LLAVE
+}
+
 
 resource "aws_iam_instance_profile" "ec2_profile" {
   name = "mi_ec2_profile"
@@ -63,3 +65,5 @@ resource "aws_iam_role" "ec2_role" {
     }]
   })
 }
+
+
