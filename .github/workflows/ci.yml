@@ -84,10 +84,12 @@ jobs:
 
       - name: OPA Policy - Name & Region Check
         run: |
+          # Evaluación de Nombre (Paquete terraform.authz)
           RESULT_NAME=$(opa eval -i tfplan.json -d terraform_name_check.rego "data.terraform.authz.allow" --format json)
           echo "Resultado Name Check: $RESULT_NAME"
           echo "$RESULT_NAME" | grep -q '"status":true' || (echo "ERROR: El nombre de la instancia no cumple la política." && exit 1)
 
+          # Evaluación de Región (Paquete terraform_region_check)
           RESULT_REGION=$(opa eval -i tfplan.json -d terraform_region_check.rego "data.terraform_region_check.allow" --format json)
           echo "Resultado Region Check: $RESULT_REGION"
           echo "$RESULT_REGION" | grep -q 'true' || (echo "ERROR: La región no es us-east-1." && exit 1)
