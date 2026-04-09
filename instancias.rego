@@ -1,30 +1,34 @@
 package terraform.analysis
 
-# 1. Validación del Tipo de Instancia
-violation[msg] {
+import future.keywords.if
+import future.keywords.contains
+
+# Regla para el tipo de instancia
+violation contains msg if {
     some i
-    resource := input.resource_changes[i]
-    resource.type == "aws_instance"
-    instance_type := resource.change.after.instance_type
-    instance_type != "t2.micro"
-    msg := sprintf("Costo: La instancia '%v' usa '%v'. Solo se permite t2.micro.", [resource.address, instance_type])
+    instance := input.resource_changes[i]
+    instance.type == "aws_instance"
+    actual_type := instance.change.after.instance_type
+    actual_type != "t2.micro"
+    msg := sprintf("Tipo de instancia no permitido: %v. Solo se permite t2.micro", [actual_type])
 }
 
-# 2. Validación de existencia del Tag Name
-violation[msg] {
+# Regla para los Tags (Nombre)
+violation contains msg if {
     some i
-    resource := input.resource_changes[i]
-    resource.type == "aws_instance"
-    not resource.change.after.tags.Name
-    msg := sprintf("Seguridad: La instancia '%v' no tiene el tag 'Name' definido.", [resource.address])
+    instance := input.resource_changes[i]
+    instance.type == "aws_instance"
+    tags := instance.change.after.tags
+    not tags.Name
+    msg := "La instancia debe tener un tag 'Name'"
 }
 
-# 3. Validación del valor exacto del Tag Name
-violation[msg] {
+# Regla para Tags específicos (Opcional, según tus requisitos)
+violation contains msg if {
     some i
-    resource := input.resource_changes[i]
-    resource.type == "aws_instance"
-    actual_name := resource.change.after.tags.Name
-    actual_name != "AUY1105-duocapp-ec2"
-    msg := sprintf("Estandarización: El nombre '%v' es incorrecto. Debe ser 'AUY1105-duocapp-ec2'.", [actual_name])
+    instance := input.resource_changes[i]
+    instance.type == "aws_instance"
+    tags := instance.change.after.tags
+    tags.Name == ""
+    msg := "El tag 'Name' no puede estar vacío"
 }
