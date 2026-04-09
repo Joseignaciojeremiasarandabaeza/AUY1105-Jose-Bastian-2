@@ -43,6 +43,6 @@ resource "aws_instance" "mi_ec2" {
   }
 
   tags = {
-    Name = "MY-EC2-Instance"
+    Name = "AUY1105-duocapp-ec2"
   }
 }
