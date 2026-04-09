@@ -92,13 +92,16 @@ jobs:
 
       - name: OPA Policy Compliance Check
         run: |
-          RESULT_ANALYSIS=$(opa eval -i tfplan.json -d . "data.terraform.analysis.violation" --format json)
+          RESULT_ANALYSIS=$(opa eval -i tfplan.json -d . "data.terraform.analysis.violation" --format json || echo "ERROR_OPA")
+          if [ "$RESULT_ANALYSIS" == "ERROR_OPA" ]; then echo "Error de ejecución en OPA Analysis"; exit 1; fi
           echo "$RESULT_ANALYSIS" | grep -q '\[\]' || (echo "ERROR: Violación de política detectada (Tipo de instancia o Tags)." && exit 1)
 
-          RESULT_NAME=$(opa eval -i tfplan.json -d . "data.terraform.authz.allow" --format json)
+          RESULT_NAME=$(opa eval -i tfplan.json -d . "data.terraform.authz.allow" --format json || echo "ERROR_OPA")
+          if [ "$RESULT_NAME" == "ERROR_OPA" ]; then echo "Error de ejecución en OPA Authz"; exit 1; fi
           echo "$RESULT_NAME" | grep -q '"status":true' || (echo "ERROR: El nombre de la instancia no cumple la nomenclatura." && exit 1)
 
-          RESULT_REGION=$(opa eval -i tfplan.json -d . "data.terraform_region_check.allow" --format json)
+          RESULT_REGION=$(opa eval -i tfplan.json -d . "data.terraform_region_check.allow" --format json || echo "ERROR_OPA")
+          if [ "$RESULT_REGION" == "ERROR_OPA" ]; then echo "Error de ejecución en OPA Region"; exit 1; fi
           echo "$RESULT_REGION" | grep -q 'true' || (echo "ERROR: La región configurada no es us-east-1." && exit 1)
 
       - name: Upload Plan Artifact
@@ -171,6 +174,10 @@ jobs:
         uses: hashicorp/setup-terraform@v3
 
       - name: Terraform Init
+        run: terraform init -upgrade -input=false
+
+      - name: Terraform Destroy
+        run: terraform destroy -auto-approve
         run: terraform init -upgrade -input=false
 
       - name: Terraform Destroy
