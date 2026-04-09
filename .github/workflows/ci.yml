@@ -92,19 +92,22 @@ jobs:
 
       - name: OPA Policy Compliance Check
         run: |
+          echo "Evaluando Análisis de Instancias..."
           RESULT_ANALYSIS=$(opa eval -i tfplan.json -d instancias.rego "data.terraform.analysis.violation" --format json || echo "ERROR_OPA")
           echo "Debug Análisis: $RESULT_ANALYSIS"
-          if [ "$RESULT_ANALYSIS" == "ERROR_OPA" ]; then exit 1; fi
+          if [[ "$RESULT_ANALYSIS" == "ERROR_OPA" ]]; then exit 1; fi
           echo "$RESULT_ANALYSIS" | grep -q '\[\]' || exit 1
 
+          echo "Evaluando Nomenclatura..."
           RESULT_NAME=$(opa eval -i tfplan.json -d terraform_name_check.rego "data.terraform.authz.allow" --format json || echo "ERROR_OPA")
           echo "Debug Name: $RESULT_NAME"
-          if [ "$RESULT_NAME" == "ERROR_OPA" ]; then exit 1; fi
+          if [[ "$RESULT_NAME" == "ERROR_OPA" ]]; then exit 1; fi
           echo "$RESULT_NAME" | grep -q '"status":true' || exit 1
 
+          echo "Evaluando Región..."
           RESULT_REGION=$(opa eval -i tfplan.json -d terraform_region_check.rego "data.terraform_region_check.allow" --format json || echo "ERROR_OPA")
           echo "Debug Region: $RESULT_REGION"
-          if [ "$RESULT_REGION" == "ERROR_OPA" ]; then exit 1; fi
+          if [[ "$RESULT_REGION" == "ERROR_OPA" ]]; then exit 1; fi
           echo "$RESULT_REGION" | grep -q 'true' || exit 1
 
       - name: Upload Plan Artifact
