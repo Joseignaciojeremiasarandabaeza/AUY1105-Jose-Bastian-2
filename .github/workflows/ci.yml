@@ -30,15 +30,15 @@ jobs:
       - name: Install TFLint
         run: curl -s https://raw.githubusercontent.com/terraform-linters/tflint/master/install_linux.sh | bash
 
-      # Fix para el Error Exit Code 3: Primero formateamos, luego chequeamos
       - name: Terraform Format
         run: terraform fmt -recursive
 
       - name: Terraform Format Check
         run: terraform fmt -check -recursive
 
+      # Se añade -upgrade para resolver el conflicto de versiones del provider
       - name: Terraform Init
-        run: terraform init -input=false
+        run: terraform init -upgrade -input=false
 
       - name: Terraform Validate
         run: terraform validate
@@ -83,13 +83,12 @@ jobs:
 
       - name: Terraform Init & Plan JSON
         run: |
-          terraform init -input=false
+          terraform init -upgrade -input=false
           terraform plan -out=tfplan -input=false
           terraform show -json tfplan > tfplan.json
 
       - name: Run Checkov (Falla si hay riesgos, excepto Academy)
         run: |
-          # Se mantienen los skips para evitar fallos por limitaciones de AWS Academy
           checkov -f tfplan.json --skip-check CKV_AWS_158,CKV_AWS_338,CKV_AWS_290,CKV_AWS_355
 
       - name: OPA Policy Compliance Check
@@ -138,7 +137,7 @@ jobs:
           name: tfplan
 
       - name: Terraform Init
-        run: terraform init -input=false
+        run: terraform init -upgrade -input=false
 
       - name: Terraform Apply
         run: terraform apply -auto-approve tfplan
@@ -176,7 +175,7 @@ jobs:
         uses: hashicorp/setup-terraform@v3
 
       - name: Terraform Init
-        run: terraform init -input=false
+        run: terraform init -upgrade -input=false
 
       - name: Terraform Destroy
         run: terraform destroy -auto-approve
