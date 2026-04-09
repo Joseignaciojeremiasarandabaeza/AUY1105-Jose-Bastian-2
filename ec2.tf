@@ -26,22 +26,25 @@ resource "aws_security_group" "ssh_access" {
 
 resource "aws_instance" "mi_ec2" {
   ami                    = "ami-0fa8aad99729521be"
-  instance_type          = "t2.micro"
+  instance_type          = "t2.micro" # Requerimiento 4 de tu pauta
   subnet_id              = aws_subnet.subnet_publica_1.id
   vpc_security_group_ids = [aws_security_group.ssh_access.id]
-  disable_api_termination = true
-  monitoring    = true           
-  ebs_optimized = true            
   
-
+  # Evita que se borre accidentalmente (Buena practica)
+  disable_api_termination = true
 
   root_block_device {
-  encrypted = true
-  }
-  metadata_options {
-    http_tokens = "required" 
+    encrypted = true # Cumple con CKV_AWS_3
   }
 
+  metadata_options {
+    http_tokens = "required" # Cumple con CKV_AWS_79 (IMDSv2)
+  }
+
+  tags = {
+    Name = "II_001V-duocapp-ec2"
+  }
+}
   tags = {
     Name = "AUY1105-duocapp-ec2"
   }
