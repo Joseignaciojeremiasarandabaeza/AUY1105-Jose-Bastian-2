@@ -2,11 +2,15 @@ package terraform.authz
 
 import future.keywords.if
 
-# Por defecto no permitimos
-default allow = false
+default allow := {
+    "status": false,
+    "msg": "El nombre de la instancia no cumple la nomenclatura requerida (AUY1105-duocapp-ec2)."
+}
 
-# Permitir si el nombre cumple con el estándar
-allow if {
+allow := {
+    "status": true,
+    "msg": "Nombre de instancia validado correctamente."
+} if {
     some i
     instance := input.resource_changes[i]
     instance.type == "aws_instance"
