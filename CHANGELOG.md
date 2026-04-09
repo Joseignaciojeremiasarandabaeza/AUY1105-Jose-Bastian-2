@@ -10,3 +10,4 @@
 - subredes ( se agrega la información de las subredes ejemplo puertos)
 - Security Groups ( encargados de controlar el trafico )
 - EC2 ( se añade la version y tipo de instancia )
+- Provider (Se configura el provedor)
