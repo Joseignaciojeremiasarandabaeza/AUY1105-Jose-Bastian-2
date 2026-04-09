@@ -92,17 +92,20 @@ jobs:
 
       - name: OPA Policy Compliance Check
         run: |
+          # 1. Validación de Instancias (Costo y Tags básicos)
           RESULT_ANALYSIS=$(opa eval -i tfplan.json -d instancias.rego "data.terraform.analysis.violation" --format json || echo "ERROR_OPA")
           echo "Debug Análisis: $RESULT_ANALYSIS"
           if [ "$RESULT_ANALYSIS" == "ERROR_OPA" ]; then exit 1; fi
           echo "$RESULT_ANALYSIS" | grep -q '\[\]' || exit 1
 
-          RESULT_NAME=$(opa eval -i tfplan.json -d authz.rego "data.terraform.authz.allow" --format json || echo "ERROR_OPA")
+          # 2. Validación de Nombre (Nomenclatura específica)
+          RESULT_NAME=$(opa eval -i tfplan.json -d terraform_name_check.rego "data.terraform.authz.allow" --format json || echo "ERROR_OPA")
           echo "Debug Name: $RESULT_NAME"
           if [ "$RESULT_NAME" == "ERROR_OPA" ]; then exit 1; fi
           echo "$RESULT_NAME" | grep -q '"status":true' || exit 1
 
-          RESULT_REGION=$(opa eval -i tfplan.json -d region.rego "data.terraform_region_check.allow" --format json || echo "ERROR_OPA")
+          # 3. Validación de Región (Solo us-east-1)
+          RESULT_REGION=$(opa eval -i tfplan.json -d terraform_region_check.rego "data.terraform_region_check.allow" --format json || echo "ERROR_OPA")
           echo "Debug Region: $RESULT_REGION"
           if [ "$RESULT_REGION" == "ERROR_OPA" ]; then exit 1; fi
           echo "$RESULT_REGION" | grep -q 'true' || exit 1
