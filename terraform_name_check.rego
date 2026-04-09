@@ -1,7 +1,10 @@
 package terraform.analysis
 
+import future.keywords.if
+import future.keywords.contains
+
 # Regla para validar el nombre exacto
-violation[msg] {
+violation contains msg if {
     some i
     resource := input.resource_changes[i]
     resource.type == "aws_instance"
@@ -13,7 +16,7 @@ violation[msg] {
 }
 
 # Regla para validar el tipo de instancia
-violation[msg] {
+violation contains msg if {
     some i
     resource := input.resource_changes[i]
     resource.type == "aws_instance"
