@@ -1,4 +1,4 @@
-package terraform.authz
+ppackage terraform.authz
 
 import future.keywords.if
 
