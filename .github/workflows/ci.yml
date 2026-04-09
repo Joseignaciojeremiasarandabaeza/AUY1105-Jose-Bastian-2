@@ -178,7 +178,3 @@ jobs:
 
       - name: Terraform Destroy
         run: terraform destroy -auto-approve
-        run: terraform init -upgrade -input=false
-
-      - name: Terraform Destroy
-        run: terraform destroy -auto-approve
