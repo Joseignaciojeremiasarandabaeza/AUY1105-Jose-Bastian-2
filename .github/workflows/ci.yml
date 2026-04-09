@@ -90,17 +90,20 @@ jobs:
         run: |
           checkov -f tfplan.json --skip-check CKV_AWS_158,CKV_AWS_338,CKV_AWS_290,CKV_AWS_355,CKV_AWS_135,CKV_AWS_126,CKV_AWS_382,CKV_AWS_130,CKV2_AWS_11,CKV2_AWS_12,CKV2_AWS_41
 
-      - name: OPA Policy Compliance Check
+    - name: OPA Policy Compliance Check
         run: |
           RESULT_ANALYSIS=$(opa eval -i tfplan.json -d instancias.rego "data.terraform.analysis.violation" --format json || echo "ERROR_OPA")
+          echo "Debug Análisis: $RESULT_ANALYSIS"
           if [ "$RESULT_ANALYSIS" == "ERROR_OPA" ]; then exit 1; fi
           echo "$RESULT_ANALYSIS" | grep -q '\[\]' || exit 1
 
           RESULT_NAME=$(opa eval -i tfplan.json -d authz.rego "data.terraform.authz.allow" --format json || echo "ERROR_OPA")
+          echo "Debug Name: $RESULT_NAME"
           if [ "$RESULT_NAME" == "ERROR_OPA" ]; then exit 1; fi
           echo "$RESULT_NAME" | grep -q '"status":true' || exit 1
 
           RESULT_REGION=$(opa eval -i tfplan.json -d region.rego "data.terraform_region_check.allow" --format json || echo "ERROR_OPA")
+          echo "Debug Region: $RESULT_REGION"
           if [ "$RESULT_REGION" == "ERROR_OPA" ]; then exit 1; fi
           echo "$RESULT_REGION" | grep -q 'true' || exit 1
 
