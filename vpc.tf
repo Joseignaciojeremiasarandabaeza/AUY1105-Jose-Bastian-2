@@ -1,5 +1,6 @@
 resource "aws_vpc" "mi_vpc" {
-  cidr_block           = "10.1.0.0/16"
+  # CAMBIO: Ajustado a 10.0.0.0/16 para que coincida con tus subnets
+  cidr_block           = "10.0.0.0/16" 
   enable_dns_support   = true
   enable_dns_hostnames = true
   tags = {
@@ -11,66 +12,40 @@ resource "aws_default_security_group" "default" {
   vpc_id = aws_vpc.mi_vpc.id
 }
 
-# checkov:skip=CKV_AWS_158:AWS Academy no permite el uso de KMS personalizado.
-# checkov:skip=CKV_AWS_338:Retencion limitada a 7 dias para evitar costos en entorno estudiantil.
+# --- NOTA SOBRE FLOW LOGS ---
+# En AWS Academy, a menudo NO tienes permiso para crear Roles para Flow Logs.
+# Si el pipeline falla en 'aws_iam_role.role_flow_logs', te recomiendo 
+# comentar toda esta sección de Flow Logs y el Rol asociado.
+# ----------------------------
+
 resource "aws_cloudwatch_log_group" "vpc_log_group" {
   name              = "/aws/vpc/flow-logs-duocapp"
   retention_in_days = 7 
 }
 
+# Si decides usarlo, debes usar el ARN del "LabRole" que ya existe
 resource "aws_flow_log" "mi_vpc_flow_log" {
-  iam_role_arn    = aws_iam_role.role_flow_logs.arn
+  # CAMBIO: Usamos el rol pre-existente del laboratorio
+  iam_role_arn    = "arn:aws:iam::767397756296:role/LabRole" 
   log_destination = aws_cloudwatch_log_group.vpc_log_group.arn
   traffic_type    = "ALL"
   vpc_id          = aws_vpc.mi_vpc.id
 }
 
-resource "aws_iam_role" "role_flow_logs" {
-  name = "role-vpc-flow-logs-duoc"
-
-  assume_role_policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [{
-      Action = "sts:AssumeRole"
-      Effect = "Allow"
-      Principal = { Service = "vpc-flow-logs.amazonaws.com" }
-    }]
-  })
-}
-
-resource "aws_iam_role_policy" "policy_flow_logs" {
-  name = "policy-vpc-flow-logs"
-  role = aws_iam_role.role_flow_logs.id
-
-  policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [
-      {
-        # checkov:skip=CKV_AWS_355:Se usa wildcard para simplificar en entorno de laboratorio Academy.
-        # checkov:skip=CKV_AWS_290:Permisos requeridos por el entorno restringido de LabRole.
-        Action = [
-          "logs:CreateLogStream",
-          "logs:PutLogEvents",
-          "logs:DescribeLogGroups",
-          "logs:DescribeLogStreams"
-        ]
-        Effect   = "Allow"
-        Resource = "*"
-      }
-    ]
-  })
-}
+# IMPORTANTE: Comenta o elimina los recursos 'aws_iam_role' y 'aws_iam_role_policy' 
+# porque causan el error 403 AccessDenied en tu cuenta.
 
 resource "aws_internet_gateway" "igw" {
   vpc_id = aws_vpc.mi_vpc.id
   tags = { Name = "AUY1105-duocapp-igw" }
 }
 
+# Ahora estas subnets SÍ son válidas dentro de 10.0.0.0/16
 resource "aws_subnet" "subnet_publica_1" {
   vpc_id                  = aws_vpc.mi_vpc.id
   cidr_block              = "10.0.1.0/24"
   availability_zone       = "us-east-1a"
-  map_public_ip_on_launch = false 
+  map_public_ip_on_launch = true # Cambiado a true para que las EC2 públicas tengan IP
   tags = { Name = "AUY1105-duocapp-subnet-publica-1" }
 }
 
@@ -78,7 +53,7 @@ resource "aws_subnet" "subnet_publica_2" {
   vpc_id                  = aws_vpc.mi_vpc.id
   cidr_block              = "10.0.2.0/24"
   availability_zone       = "us-east-1b"
-  map_public_ip_on_launch = false 
+  map_public_ip_on_launch = true
   tags = { Name = "AUY1105-duocapp-subnet-publica-2" }
 }
 
