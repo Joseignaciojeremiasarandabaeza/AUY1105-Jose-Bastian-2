@@ -3,7 +3,7 @@ name: "Terraform Lint"
 on:
   pull_request:
     branches:
-      - automatización
+      - politicas
 
 jobs:
   lint:
