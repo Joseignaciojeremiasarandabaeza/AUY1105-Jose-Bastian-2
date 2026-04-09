@@ -19,7 +19,7 @@ resource "aws_default_security_group" "default" {
 # ----------------------------
 
 resource "aws_cloudwatch_log_group" "vpc_log_group" {
-  name              = "/aws/vpc/flow-logs-duocapp"
+  name              = "/aws/vpc/flow-logs-duocapp-v2" # Agregamos -v2
   retention_in_days = 7 
 }
 
