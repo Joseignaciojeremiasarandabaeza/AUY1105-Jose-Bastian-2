@@ -105,6 +105,10 @@ jobs:
           echo "$RESULT_NAME" | grep -q '"status":true' || exit 1
 
           echo "--- 3. Validando Region ---"
+          # Ejecución directa para ver errores de sintaxis en el log de GitHub
+          opa eval -i tfplan.json -d terraform_region_check.rego "data.terraform_region_check.allow" --format json
+          
+          # Captura del resultado
           RESULT_REGION=$(opa eval -i tfplan.json -d terraform_region_check.rego "data.terraform_region_check.allow" --format json || echo "ERROR_OPA")
           echo "Debug Region: $RESULT_REGION"
           if [[ "$RESULT_REGION" == "ERROR_OPA" ]]; then exit 1; fi
@@ -179,6 +183,11 @@ jobs:
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
 
+      - name: Terraform Init
+        run: terraform init -upgrade -input=false
+
+      - name: Terraform Destroy
+        run: terraform destroy -auto-approve
       - name: Terraform Init
         run: terraform init -upgrade -input=false
 
