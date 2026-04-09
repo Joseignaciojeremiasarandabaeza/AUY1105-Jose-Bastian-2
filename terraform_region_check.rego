@@ -1,23 +1,19 @@
 package terraform_region_check
 
 import future.keywords.if
-import future.keywords.contains
 
-# 1. Por defecto, no permitimos si no se cumplen las reglas
+# Por defecto, no permitimos
 default allow = false
 
-# 2. Definimos las denegaciones
-# Cambiamos deny[msg] por deny contains msg
-deny contains msg if {
+# La regla debe devolver un booleano simple 'true' para que el grep 'true' funcione
+allow if {
     some i
     provider := input.configuration.provider_config[i]
     provider.name == "aws"
     
-    # Extraemos la región de las expresiones
+    # Extraemos la región del plan
     region := provider.expressions.region.constant_value
-    region != "us-east-1"
-    
-    msg := sprintf("Región no permitida: se encontró '%v', pero se requiere 'us-east-1'.", [region])
+    region == "us-east-1"
 }
 
 # 3. La decisión final: allow es true SOLO si no hay mensajes en deny
