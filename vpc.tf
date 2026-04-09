@@ -3,7 +3,7 @@ resource "aws_vpc" "mi_vpc" {
   enable_dns_support   = true
   enable_dns_hostnames = true
   tags = {
-    Name = "mi-vpc"
+    Name = "AUY1105-duocapp-vpc"
   }
 }
 
@@ -11,7 +11,7 @@ resource "aws_vpc" "mi_vpc" {
 resource "aws_internet_gateway" "igw" {
   vpc_id = aws_vpc.mi_vpc.id
   tags = {
-    Name = "mi-igw"
+    Name = "AUY1105-duocapp-igw"
   }
 }
 
@@ -22,7 +22,7 @@ resource "aws_subnet" "subnet_publica_1" {
   availability_zone       = "us-east-1a"
   map_public_ip_on_launch = false
   tags = {
-    Name = "subnet-publica-1"
+    Name = "AUY1105-duocapp-subnet-publica-1"
   }
 }
 
@@ -32,7 +32,7 @@ resource "aws_subnet" "subnet_publica_2" {
   availability_zone       = "us-east-1b"
   map_public_ip_on_launch = true
   tags = {
-    Name = "subnet-publica-2"
+    Name = "AUY1105-duocapp-subnet-publica-2"
   }
 }
 
@@ -42,7 +42,7 @@ resource "aws_subnet" "subnet_privada_1" {
   cidr_block        = "10.0.3.0/24"
   availability_zone = "us-east-1a"
   tags = {
-    Name = "subnet-privada-1"
+    Name = "AUY1105-duocapp-subnet-privada-1"
   }
 }
 
@@ -51,7 +51,7 @@ resource "aws_subnet" "subnet_privada_2" {
   cidr_block        = "10.0.4.0/24"
   availability_zone = "us-east-1b"
   tags = {
-    Name = "subnet-privada-2"
+    Name = "AUY1105-duocapp-subnet-privada-2"
   }
 }
 
@@ -59,7 +59,7 @@ resource "aws_subnet" "subnet_privada_2" {
 resource "aws_eip" "nat_eip" {
   domain = "vpc" # <--- Cambia 'vpc = true' por esto
   tags = {
-    Name = "nat-eip"
+    Name = "AUY1105-duocapp-nat-eip"
   }
 }
 
@@ -67,7 +67,7 @@ resource "aws_nat_gateway" "nat_gw" {
   allocation_id = aws_eip.nat_eip.id
   subnet_id     = aws_subnet.subnet_publica_1.id
   tags = {
-    Name = "nat-gw"
+    Name = "AUY1105-duocapp-nat-gw"
   }
 }
 
@@ -75,7 +75,7 @@ resource "aws_nat_gateway" "nat_gw" {
 resource "aws_route_table" "public_rt" {
   vpc_id = aws_vpc.mi_vpc.id
   tags = {
-    Name = "public-rt"
+    Name = "AUY1105-duocapp-public-rt"
   }
 }
 
@@ -101,7 +101,7 @@ resource "aws_route" "public_route" {
 resource "aws_route_table" "private_rt" {
   vpc_id = aws_vpc.mi_vpc.id
   tags = {
-    Name = "private-rt"
+    Name = "AUY1105-duocapp-private-rt"
   }
 }
 

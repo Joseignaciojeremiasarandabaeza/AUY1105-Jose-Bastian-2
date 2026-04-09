@@ -1,4 +1,4 @@
-a# AUY1105-Jose-Bastian-2
+# AUY1105-Jose-Bastian-2
 
 El objetivo principal de esta evaluación es implementar un pipeline automatizado mediante GitHub Actions, integrando herramientas de análisis
 de calidad, seguridad y prácticas modernas de infraestructura como código (IaC). Este flujo de trabajo deberá cumplir con los estándares de
@@ -20,3 +20,4 @@ definición del código Terraform.
  Archivo vpc.tf: Creacion de la vpc. las subredes privadas y publicas, junto al igw y el nat 
  Archivo provider: Le dice al codigo de donde sacar la sintaxis y a donde va.
   .Gitignore: se agrego el .pem
+ Archivos .rego: conkfiguran las politicas del opa para la creacion de instancias
