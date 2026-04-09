@@ -32,3 +32,23 @@ violation contains msg if {
     tags.Name == ""
     msg := "El tag 'Name' no puede estar vacío"
 }
+
+
+# Regla para detectar violaciones de SSH abierto
+violation[msg] {
+    some i
+    resource := input.planned_values.root_module.resources[i]
+    resource.type == "aws_security_group"
+    
+    # Buscamos en las reglas de entrada (ingress)
+    ingress := resource.values.ingress[j]
+    ingress.from_port <= 22
+    ingress.to_port >= 22
+    ingress.protocol == "tcp"
+    
+    # Verificamos si el CIDR es el "mundo" (0.0.0.0/0)
+    some k
+    ingress.cidr_blocks[k] == "0.0.0.0/0"
+    
+    msg := sprintf("SEGURIDAD: El Security Group '%s' permite SSH (puerto 22) desde 0.0.0.0/0. Esto está prohibido.", [resource.name])
+}
