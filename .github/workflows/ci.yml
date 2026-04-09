@@ -90,7 +90,7 @@ jobs:
         run: |
           checkov -f tfplan.json --skip-check CKV_AWS_158,CKV_AWS_338,CKV_AWS_290,CKV_AWS_355,CKV_AWS_135,CKV_AWS_126,CKV_AWS_382,CKV_AWS_130,CKV2_AWS_11,CKV2_AWS_12,CKV2_AWS_41
 
-    - name: OPA Policy Compliance Check
+      - name: OPA Policy Compliance Check
         run: |
           RESULT_ANALYSIS=$(opa eval -i tfplan.json -d instancias.rego "data.terraform.analysis.violation" --format json || echo "ERROR_OPA")
           echo "Debug Análisis: $RESULT_ANALYSIS"
