@@ -1,94 +1,69 @@
-name: "Terraform Lint"
+name: "Terraform CI/CD con Seguridad Estricta"
 
 on:
+  push:
+    branches:
+      - main
+      - automatización
   pull_request:
     branches:
-      - politicas
+      - main
+      - automatización
 
 jobs:
-  lint:
+  lint-and-validate:
+    name: "Lint & Validate"
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout repository
+      - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Install Terraform
-        run: |
-          sudo apt-get update && sudo apt-get install -y gnupg software-properties-common wget
-          wget -O- https://apt.releases.hashicorp.com/gpg | gpg --dearmor | sudo tee /usr/share/keyrings/hashicorp-archive-keyring.gpg
-          echo "deb [signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/hashicorp.list
-          sudo apt-get update && sudo apt-get install -y terraform
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_wrapper: false
 
       - name: Install TFLint
-        run: |
-          curl -s https://raw.githubusercontent.com/terraform-linters/tflint/master/install_linux.sh | bash
+        run: curl -s https://raw.githubusercontent.com/terraform-linters/tflint/master/install_linux.sh | bash
 
-      - name: Run TFLint
-        run: tflint --recursive
-
-  validate:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Install Terraform
-        run: |
-          sudo apt-get update && sudo apt-get install -y gnupg software-properties-common wget
-          wget -O- https://apt.releases.hashicorp.com/gpg | gpg --dearmor | sudo tee /usr/share/keyrings/hashicorp-archive-keyring.gpg
-          echo "deb [signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/hashicorp.list
-          sudo apt-get update && sudo apt-get install -y terraform
+      - name: Terraform Format Check
+        run: terraform fmt -check -recursive
 
       - name: Terraform Init
         run: terraform init -input=false
 
       - name: Terraform Validate
         run: terraform validate
-  
-  security:
+
+      - name: Run TFLint
+        run: tflint --recursive
+
+  security-and-compliance:
+    name: "Security (Checkov) & Compliance (OPA)"
     runs-on: ubuntu-latest
+    needs: lint-and-validate
     steps:
-      - name: Checkout repository
+      - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
+          aws-region: us-east-1
 
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.x'
 
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+
       - name: Install Checkov
-        run: |
-          python3 -m pip install --upgrade pip
-          pip3 install checkov
-
-      - name: Install Terraform
-        run: |
-          sudo apt-get update && sudo apt-get install -y gnupg software-properties-common wget
-          wget -O- https://apt.releases.hashicorp.com/gpg | gpg --dearmor | sudo tee /usr/share/keyrings/hashicorp-archive-keyring.gpg
-          echo "deb [signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/hashicorp.list
-          sudo apt-get update && sudo apt-get install -y terraform
-
-      - name: Terraform Plan JSON
-        run: |
-          terraform init -input=false
-          terraform plan -out=tfplan -input=false
-          terraform show -json tfplan > tfplan.json
-
-      - name: Run Checkov
-        run: checkov -f tfplan.json --soft-fail
-
-  opa:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Install Terraform
-        run: |
-          sudo apt-get update && sudo apt-get install -y gnupg software-properties-common wget
-          wget -O- https://apt.releases.hashicorp.com/gpg | gpg --dearmor | sudo tee /usr/share/keyrings/hashicorp-archive-keyring.gpg
-          echo "deb [signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/hashicorp.list
-          sudo apt-get update && sudo apt-get install -y terraform
+        run: pip3 install checkov
 
       - name: Install OPA
         run: |
@@ -96,11 +71,98 @@ jobs:
           chmod +x opa
           sudo mv opa /usr/local/bin/
 
-      - name: Generate Terraform plan JSON
+      - name: Terraform Init & Plan JSON
         run: |
           terraform init -input=false
           terraform plan -out=tfplan -input=false
           terraform show -json tfplan > tfplan.json
 
-      - name: Run OPA policies
-        run: opa eval --data policies --input tfplan.json "data"
+      - name: Run Checkov (Falla si hay errores excepto los de Academy)
+        run: |
+          # Se ignoran checks de KMS e IAM específicos de Academy para permitir el despliegue
+          checkov -f tfplan.json --skip-check CKV_AWS_158,CKV_AWS_338,CKV_AWS_290,CKV_AWS_355
+
+      - name: OPA Policy - Name & Region Check
+        run: |
+          RESULT_NAME=$(opa eval -i tfplan.json -d terraform_name_check.rego "data.terraform.authz.allow" --format json)
+          echo "Resultado Name Check: $RESULT_NAME"
+          echo "$RESULT_NAME" | grep -q '"status":true' || (echo "ERROR: El nombre de la instancia no cumple la política." && exit 1)
+
+          RESULT_REGION=$(opa eval -i tfplan.json -d terraform_region_check.rego "data.terraform_region_check.allow" --format json)
+          echo "Resultado Region Check: $RESULT_REGION"
+          echo "$RESULT_REGION" | grep -q 'true' || (echo "ERROR: La región no es us-east-1." && exit 1)
+
+      - name: Upload Plan Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: tfplan
+          path: tfplan
+
+  deploy:
+    name: "Terraform Apply"
+    runs-on: ubuntu-latest
+    needs: security-and-compliance
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
+          aws-region: us-east-1
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+
+      - name: Download Plan
+        uses: actions/download-artifact@v4
+        with:
+          name: tfplan
+
+      - name: Terraform Init
+        run: terraform init -input=false
+
+      - name: Terraform Apply
+        run: terraform apply -auto-approve tfplan
+
+      - name: Upload State
+        uses: actions/upload-artifact@v4
+        with:
+          name: terraform-state
+          path: terraform.tfstate
+
+  destroy:
+    name: "Terraform Destroy"
+    runs-on: ubuntu-latest
+    needs: deploy
+    environment: destroy-approval 
+    if: always() && github.event_name == 'push' && github.ref == 'refs/heads/main'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
+          aws-region: us-east-1
+
+      - name: Download State
+        uses: actions/download-artifact@v4
+        with:
+          name: terraform-state
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+
+      - name: Terraform Init
+        run: terraform init -input=false
+
+      - name: Terraform Destroy
+        run: terraform destroy -auto-approve
